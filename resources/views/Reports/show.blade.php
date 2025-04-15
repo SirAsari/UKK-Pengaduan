@@ -32,6 +32,7 @@
             </div>
             <div class="card-footer">
                 <a href="{{ route('report.index') }}" class="btn btn-secondary">Back to Reports</a>
+                <a href="{{ route('report.exportSingle', $report->id) }}" class="btn btn-success">Export to Excel</a>
             </div>
         </div>
     </div>

@@ -4,15 +4,28 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\Report;
+use App\Exports\ReportsExport;
+use App\Exports\SingleReportExport;
+use Maatwebsite\Excel\Facades\Excel;
 
 class ReportController extends Controller
 {
-    public function index()
-    {
-        $reports = Report::orderBy("created_at", "asc")->paginate(10);
+    // public function index()
+    // {
+    //     $reports = Report::orderBy("created_at", "asc")->paginate(10);
 
-        return view("Reports.index", compact("reports"));
-    }
+    //     return view("Reports.index", compact("reports"));
+    // }
+    
+    public function index(Request $request)
+{
+    $sort = $request->input('sort', 'created_at'); // Default sort by created_at
+    $order = $request->input('order', 'asc'); // Default order is ascending
+
+    $reports = Report::orderBy($sort, $order)->paginate(10);
+
+    return view('Reports.index', compact('reports', 'sort', 'order'));
+}
 
     public function create()
     {
@@ -109,4 +122,15 @@ class ReportController extends Controller
 
     return view('Reports.index', compact('reports', 'search'));
 }
+
+    public function export()
+    {
+        return Excel::download(new ReportsExport, 'reports.xlsx');
+    }
+
+    public function exportSingle($id)
+    {
+        $report = Report::findOrFail($id);
+        return Excel::download(new SingleReportExport($report), 'report_' . $report->id . '.xlsx');
+    }
 }

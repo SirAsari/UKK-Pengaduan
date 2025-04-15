@@ -1,8 +1,23 @@
-<!-- filepath: c:\Users\PPLG\Documents\UKK_asari\Pengaduan\resources\views\Reports\index.blade.php -->
 <x-app-layout>
     <div class="container mt-4">
         <h1 class="mb-4">Reports</h1>
         <a href="{{ route('report.create') }}" class="btn btn-primary mb-3">Create Report</a>
+        <a href="{{ route('report.export') }}" class="btn btn-success mb-3">Export All to Excel</a>
+
+        <!-- Export by Date Form -->
+        <form method="GET" action="{{ route('report.exportByDate') }}" class="mb-4">
+            <div class="row">
+                <div class="col-md-4">
+                    <input type="date" name="start_date" class="form-control" placeholder="Start Date" required>
+                </div>
+                <div class="col-md-4">
+                    <input type="date" name="end_date" class="form-control" placeholder="End Date" required>
+                </div>
+                <div class="col-md-4">
+                    <button type="submit" class="btn btn-success">Export by Date</button>
+                </div>
+            </div>
+        </form>
 
         <!-- Search form -->
         <form method="GET" action="{{ route('report.search') }}" class="mb-4">

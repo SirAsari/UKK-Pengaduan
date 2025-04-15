@@ -3,6 +3,7 @@
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ReportController;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\StaffManagementController;
 
 /*
 |--------------------------------------------------------------------------
@@ -33,6 +34,13 @@ Route::resource('report', ReportController::class);
 Route::get('/reports/search', [ReportController::class, 'search'])->name('report.search');
 
 
+Route::middleware(['auth', 'role:HEAD_STAFF'])->group(function () {
+    Route::resource('staff-management', StaffManagementController::class);
+});
+
+Route::get('/reports/export', [ReportController::class, 'export'])->name('report.export');
+Route::get('/reports/{id}/export', [ReportController::class, 'exportSingle'])->name('report.exportSingle');
+Route::get('/reports/export-by-date', [ReportController::class, 'exportByDate'])->name('report.exportByDate');
 // Route::get('/admin-dashboard', function () {
 //     return view('admin.dashboard');
 // })->middleware('role:admin')
