@@ -30,10 +30,27 @@
                     <img src="{{ asset('storage/' . $report->image) }}" alt="Report Image" class="img-fluid rounded">
                 @endif
             </div>
+
+
             <div class="card-footer">
                 <a href="{{ route('report.index') }}" class="btn btn-secondary">Back to Reports</a>
                 <a href="{{ route('report.exportSingle', $report->id) }}" class="btn btn-success">Export to Excel</a>
             </div>
+
+            @if(auth()->user()->role === 'STAFF')
+    <form action="{{ route('report.updateStatus', $report->id) }}" method="POST" class="mt-4">
+        @csrf
+        <div class="mb-3">
+            <label for="statement" class="form-label">Update Report Status</label>
+            <select name="statement" id="statement" class="form-control" required>
+                <option value="on_process" {{ $report->statement == 'on_process' ? 'selected' : '' }}>On Process</option>
+                <option value="done" {{ $report->statement == 'done' ? 'selected' : '' }}>Done</option>
+                <option value="rejected" {{ $report->statement == 'rejected' ? 'selected' : '' }}>Rejected</option>
+            </select>
+        </div>
+        <button type="submit" class="btn btn-primary">Update Status</button>
+    </form>
+@endif
         </div>
     </div>
 </x-app-layout>

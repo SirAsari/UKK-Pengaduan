@@ -2,7 +2,7 @@
     <div class="container mt-4">
         <h1 class="mb-4">Create Report</h1>
 
-        <form action="{{ route('report.store') }}" method="POST" enctype="multipart/form-data">
+        <form action="{{ route('user.report.store') }}" method="POST" enctype="multipart/form-data">
             @csrf
 
             <div class="mb-3">
