@@ -19,14 +19,39 @@ class ReportController extends Controller
     // }
 
     public function index(Request $request)
-    {
-        $sort = $request->input('sort', 'created_at'); // Default sort by created_at
-        $order = $request->input('order', 'asc'); // Default order is ascending
+{
+    $sort = $request->input('sort', 'created_at');
+    $order = $request->input('order', 'asc');
+    $search = $request->input('search');
+    $filterType = $request->input('type');
+    $filterProvince = $request->input('province');
 
-        $reports = Report::orderBy($sort, $order)->paginate(10);
+    $reports = Report::query();
 
-        return view('Reports.index', compact('reports', 'sort', 'order'));
+    if ($search) {
+        $reports->where(function ($query) use ($search) {
+            $query->where('description', 'LIKE', "%{$search}%")
+                  ->orWhere('type', 'LIKE', "%{$search}%")
+                  ->orWhere('province', 'LIKE', "%{$search}%");
+        });
     }
+
+    if ($filterType) {
+        $reports->where('type', $filterType);
+    }
+
+    if ($filterProvince) {
+        $reports->where('province', $filterProvince);
+    }
+
+    $reports = $reports->orderBy($sort, $order)->paginate(10);
+
+    $types = Report::select('type')->distinct()->pluck('type');
+    $provinces = Report::select('province')->distinct()->pluck('province');
+
+    return view('Reports.index', compact('reports', 'sort', 'order', 'types', 'provinces', 'filterType', 'filterProvince', 'search'));
+}
+
 
     public function create()
     {
@@ -37,7 +62,7 @@ class ReportController extends Controller
     {
         return view("user-reports.create");
     }
-    
+
     public function store(Request $request)
 {
     $this->validate($request, [
@@ -47,7 +72,7 @@ class ReportController extends Controller
         'regency' => 'required',
         'subdistrict' => 'required',
         'village' => 'required',
-        'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048', // Validate the image
+        'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
     ]);
 
     $report = new Report();
@@ -61,8 +86,8 @@ class ReportController extends Controller
 
     if ($request->hasFile('image')) {
         $file = $request->file('image');
-        $path = $file->store('reports', 'public'); // Save the file in the 'storage/app/public/reports' directory
-        $report->image = $path; // Store the relative path in the database
+        $path = $file->store('reports', 'public');
+        $report->image = $path;
     }
 
     $report->save();
@@ -141,11 +166,34 @@ class ReportController extends Controller
         return Excel::download(new SingleReportExport($report), 'report_' . $report->id . '.xlsx');
     }
 
-    public function userIndex()
-    {
-        $reports = Report::orderBy('created_at', 'desc')->paginate(9);
-        return view('user-reports.index', compact('reports'));
+    public function userIndex(Request $request)
+{
+    $query = Report::query();
+
+    if ($request->has('search')) {
+        $query->where(function ($q) use ($request) {
+            $q->where('description', 'like', '%' . $request->search . '%')
+              ->orWhere('type', 'like', '%' . $request->search . '%')
+              ->orWhere('province', 'like', '%' . $request->search . '%');
+        });
     }
+
+    if ($request->filled('type')) {
+        $query->where('type', $request->type);
+    }
+
+    if ($request->filled('province')) {
+        $query->where('province', $request->province);
+    }
+
+    $reports = $query->orderBy('created_at', 'desc')->paginate(9);
+
+    $types = Report::select('type')->distinct()->pluck('type');
+    $provinces = Report::select('province')->distinct()->pluck('province');
+
+    return view('user-reports.index', compact('reports', 'types', 'provinces'));
+}
+
 
     public function userShow($id)
     {
@@ -162,6 +210,15 @@ class ReportController extends Controller
         'comment' => 'required|string|max:1000',
     ]);
 
+    $badWords = ['memek', 'kontol', 'anjing', 'bangsat'];
+    $comment = strtolower($request->input('comment'));
+
+    foreach ($badWords as $badWord) {
+        if (str_contains($comment, $badWord)) {
+            return redirect()->back()->with('badword_detected', true);
+        }
+    }
+
     $report = Report::findOrFail($id);
 
     $report->comments()->create([
@@ -169,17 +226,31 @@ class ReportController extends Controller
         'comment' => $request->input('comment'),
     ]);
 
-    return redirect()->route('user.report.show', $id)->with('success', 'Comment added successfully.');
+    return redirect()->route('user.report.show', $id)->with('success', 'Komentar berhasil ditambahkan.');
+}
+
+public function addCommentAdmin(Request $request, $id)
+{
+    $request->validate([
+        'comment' => 'required|string|max:1000',
+    ]);
+
+    $report = Report::findOrFail($id);
+
+    $report->comments()->create([
+        'user_id' => auth()->id(),
+        'comment' => $request->input('comment'),
+    ]);
+
+    return redirect()->route('report.show', $id)->with('success', 'Comment added successfully.');
 }
 
 public function vote($id)
 {
     $report = Report::findOrFail($id);
 
-    // Decode the `voted_by` JSON column into an array
     $votedBy = $report->voted_by ? json_decode($report->voted_by, true) : [];
 
-    // Check if the user has already voted
     if (in_array(auth()->id(), $votedBy)) {
         return redirect()->route('user.report.show', $id)->with('error', 'You have already voted for this report.');
     }
@@ -199,19 +270,32 @@ public function headStaffDashboard()
     $totalReports = Report::count();
 
     $respondedReports = Report::whereIn('statement', ['done', 'on_process'])->count();
-
     $unrespondedReports = $totalReports - $respondedReports;
 
-    return view('Admin.landingpage', compact('totalReports', 'respondedReports', 'unrespondedReports'));
+    $provinceData = Report::selectRaw('province, COUNT(*) as total')
+        ->groupBy('province')
+        ->pluck('total', 'province');
+
+    return view('Admin.chart', compact(
+        'totalReports',
+        'respondedReports',
+        'unrespondedReports',
+        'provinceData'
+    ));
 }
+
 
 public function updateStatus(Request $request, $id)
 {
+    $report = Report::findOrFail($id);
+
+    if ($report->statement === 'done') {
+        return redirect()->route('report.index')->with('error', 'This report status cannot be changed because it is already marked as "Done".');
+    }
+
     $request->validate([
         'statement' => 'required|in:on_process,done,rejected',
     ]);
-
-    $report = Report::findOrFail($id);
 
     $report->update([
         'statement' => $request->input('statement'),
@@ -219,4 +303,5 @@ public function updateStatus(Request $request, $id)
 
     return redirect()->route('report.index')->with('success', 'Report status updated successfully.');
 }
+
 }

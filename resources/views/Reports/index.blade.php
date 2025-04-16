@@ -1,6 +1,5 @@
 <x-app-layout>
-    <div class="container mx-auto mt-8">
-        <!-- Header Section -->
+    <div class="container mx-auto mt-8 mb-10">
         <div class="flex justify-between items-center mb-6">
             <h1 class="text-3xl font-bold text-gray-800">Daftar Pengaduan</h1>
             <div class="flex space-x-4">
@@ -13,7 +12,6 @@
             </div>
         </div>
 
-        <!-- Export by Date Form -->
         <div class="bg-white shadow-md rounded-lg p-6 mb-6">
             <h2 class="text-lg font-semibold text-gray-800 mb-4">Ekspor Berdasarkan Tanggal</h2>
             <form method="GET" action="{{ route('report.exportByDate') }}" class="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -25,18 +23,32 @@
             </form>
         </div>
 
-        <!-- Search Form -->
         <div class="bg-white shadow-md rounded-lg p-6 mb-6">
             <h2 class="text-lg font-semibold text-gray-800 mb-4">Cari Pengaduan</h2>
-            <form method="GET" action="{{ route('report.search') }}" class="flex items-center space-x-4">
+            <form method="GET" action="{{ route('report.index') }}" class="flex flex-wrap items-center space-x-4">
                 <input type="text" name="search" class="flex-grow border border-gray-300 rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Cari pengaduan..." value="{{ request('search') }}">
+
+                <select name="type" class="border border-gray-300 rounded-lg p-2">
+                    <option value="">Semua Tipe</option>
+                    @foreach ($types as $type)
+                        <option value="{{ $type }}" {{ request('type') == $type ? 'selected' : '' }}>{{ ucfirst($type) }}</option>
+                    @endforeach
+                </select>
+
+                <select name="province" class="border border-gray-300 rounded-lg p-2">
+                    <option value="">Semua Provinsi  </option>
+                    @foreach ($provinces as $province)
+                        <option value="{{ $province }}" {{ request('province') == $province ? 'selected' : '' }}>{{ $province }}</option>
+                    @endforeach
+                </select>
+
                 <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">
                     Cari
                 </button>
             </form>
+
         </div>
 
-        <!-- Reports Table -->
         <div class="bg-white shadow-md rounded-lg p-6">
             <h2 class="text-lg font-semibold text-gray-800 mb-4">Daftar Pengaduan</h2>
             <div class="overflow-x-auto">
@@ -94,85 +106,10 @@
                     </tbody>
                 </table>
             </div>
-        </div>
-
-        <!-- Pagination -->
-        <div class="mt-6">
-            {{ $reports->links('pagination::tailwind') }}
-        </div>
-
-        <x-app-layout>
-            <div class="container mt-4">
-                <h1 class="mb-4">Head Staff Dashboard</h1>
-
-                <div class="mb-4">
-                    <a href="{{ route('report.index') }}" class="btn btn-primary">Go to Reports</a>
-
-                    <!-- Button to redirect to Staff Management (visible only to HEAD_STAFF) -->
-                    @if(auth()->user()->role === 'HEAD_STAFF')
-                        <a href="{{ route('staff-management.index') }}" class="btn btn-secondary">Manage Staff</a>
-                    @endif
-                </div>
-
-                <div class="card">
-                    <div class="card-body">
-                        <h5 class="card-title">Reports Overview</h5>
-                        <div style="width: 300px; height: 300px; margin: 0 auto;">
-                            <canvas id="reportsChart"></canvas>
-                        </div>
-                    </div>
-                </div>
+            <div class="mt-6">
+                {{ $reports->links('pagination::tailwind') }}
             </div>
-
-            <!-- Include Chart.js from the CDN -->
-            <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
-            <script>
-                document.addEventListener('DOMContentLoaded', function () {
-                    const ctx = document.getElementById('reportsChart').getContext('2d');
-                    const reportsChart = new Chart(ctx, {
-                        type: 'pie',
-                        data: {
-                            labels: ['Responded Reports', 'Unresponded Reports'],
-                            datasets: [{
-                                label: 'Reports Overview',
-                                data: [{{ $respondedReports }}, {{ $unrespondedReports }}],
-                                backgroundColor: [
-                                    'rgba(75, 192, 192, 0.2)', // Responded Reports
-                                    'rgba(255, 99, 132, 0.2)'  // Unresponded Reports
-                                ],
-                                borderColor: [
-                                    'rgba(75, 192, 192, 1)',
-                                    'rgba(255, 99, 132, 1)'
-                                ],
-                                borderWidth: 1
-                            }]
-                        },
-                        options: {
-                            responsive: true,
-                            maintainAspectRatio: true,
-                            aspectRatio: 1,
-                            plugins: {
-                                legend: {
-                                    position: 'top',
-                                },
-                                tooltip: {
-                                    callbacks: {
-                                        label: function (context) {
-                                            const label = context.label || '';
-                                            const value = context.raw || 0;
-                                            const total = {{ $totalReports }};
-                                            const percentage = ((value / total) * 100).toFixed(2);
-                                            return `${label}: ${value} (${percentage}%)`;
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    });
-                });
-            </script>
-        </x-app-layout>
+        </div>
 
     </div>
 </x-app-layout>

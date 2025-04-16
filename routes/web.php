@@ -22,7 +22,7 @@ route::get('', [ReportController::class,'userIndex'])->name('user.reports');
 
 Route::get('/dashboard', function () {
     return view('dashboard');
-})->middleware(['auth', 'verified'])->name('dashboard');
+})->name('dashboard');
 
 Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
@@ -48,6 +48,7 @@ Route::middleware(['auth', 'role:STAFF,HEAD_STAFF'])->group(function () {
     Route::get('/reports/export', [ReportController::class, 'export'])->name('report.export');
     Route::get('/reports/{id}/export', [ReportController::class, 'exportSingle'])->name('report.exportSingle');
     Route::get('/reports/export-by-date', [ReportController::class, 'exportByDate'])->name('report.exportByDate');
+    Route::post('/reports/{id}/comment', [ReportController::class, 'addCommentAdmin'])->name('admin.report.comment');
 });
 
 // Buat HEAD_STAFF
